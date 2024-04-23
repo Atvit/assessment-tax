@@ -6,10 +6,14 @@ import (
 )
 
 func New() *zap.Logger {
-	logger, err := zap.NewProduction()
+	cfg := zap.NewProductionConfig()
+	cfg.OutputPaths = []string{"stdout"}
+
+	logger, err := cfg.Build()
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer logger.Sync()
 
 	return logger
 }
