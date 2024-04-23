@@ -1,15 +1,17 @@
 package main
 
 import (
-	"net/http"
-
+	"github.com/Atvit/assessment-tax/config"
+	"github.com/Atvit/assessment-tax/log"
+	"github.com/Atvit/assessment-tax/server"
 	"github.com/labstack/echo/v4"
 )
 
 func main() {
 	e := echo.New()
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, Go Bootcamp!")
-	})
-	e.Logger.Fatal(e.Start(":8080"))
+	logger := log.New()
+	cfg := config.New()
+	server := server.New(e, cfg, logger)
+
+	server.Start()
 }
