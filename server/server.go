@@ -19,23 +19,23 @@ type Server interface {
 
 type server struct {
 	echo   *echo.Echo
-	config config.Configuration
+	cfg    *config.Configuration
 	logger *zap.Logger
 }
 
-func New(echo *echo.Echo, config config.Configuration, logger *zap.Logger) Server {
+func New(echo *echo.Echo, cfg *config.Configuration, logger *zap.Logger) Server {
 	return &server{
 		echo:   echo,
-		config: config,
+		cfg:    cfg,
 		logger: logger,
 	}
 }
 
 func (s server) Start() {
-	router.Register(s.echo, s.logger)
+	router.Register(s.echo, s.cfg)
 
 	go func() {
-		err := s.echo.Start(":" + strconv.Itoa(s.config.Port))
+		err := s.echo.Start(":" + strconv.Itoa(s.cfg.Port))
 		if err != nil && err != http.ErrServerClosed {
 			s.logger.Fatal("unexpected shutdown the server", zap.Error(err))
 		}

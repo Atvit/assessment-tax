@@ -12,19 +12,19 @@ type DB interface {
 }
 
 type db struct {
-	config config.Configuration
+	cfg    *config.Configuration
 	logger *zap.Logger
 }
 
-func New(config config.Configuration, logger *zap.Logger) DB {
+func New(cfg *config.Configuration, logger *zap.Logger) DB {
 	return &db{
-		config: config,
+		cfg:    cfg,
 		logger: logger,
 	}
 }
 
 func (d db) Connect() (*sql.DB, error) {
-	sql, err := sql.Open("postgres", d.config.DatabaseURL)
+	sql, err := sql.Open("postgres", d.cfg.DatabaseURL)
 	if err != nil {
 		d.logger.Fatal("unable to configure database", zap.Error(err))
 		return nil, err
