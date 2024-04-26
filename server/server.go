@@ -3,8 +3,11 @@ package server
 import (
 	"context"
 	"github.com/Atvit/assessment-tax/config"
-	"github.com/Atvit/assessment-tax/router"
+	"github.com/Atvit/assessment-tax/internals/tax"
+	mw "github.com/Atvit/assessment-tax/middleware"
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/zap"
 	"net/http"
 	"os"
@@ -18,24 +21,42 @@ type Server interface {
 }
 
 type server struct {
-	echo   *echo.Echo
+	e      *echo.Echo
 	cfg    *config.Configuration
 	logger *zap.Logger
 }
 
-func New(echo *echo.Echo, cfg *config.Configuration, logger *zap.Logger) Server {
+func New(e *echo.Echo, cfg *config.Configuration, logger *zap.Logger) Server {
 	return &server{
-		echo:   echo,
+		e:      e,
 		cfg:    cfg,
 		logger: logger,
 	}
 }
 
+func (s server) registerRoutes() {
+	validate := validator.New()
+	e := s.e
+
+	e.GET("/", func(c echo.Context) error {
+		return c.String(http.StatusOK, "Hello, Go Bootcamp!")
+	})
+
+	admin := e.Group("/admin")
+	admin.Use(middleware.BasicAuth(func(username string, password string, c echo.Context) (bool, error) {
+		return mw.Authenticate(username, password, s.cfg)
+	}))
+
+	taxHandler := tax.NewHandler(s.logger, validate)
+	tax := e.Group("/tax")
+	tax.POST("/calculations", taxHandler.CalculateTax)
+}
+
 func (s server) Start() {
-	router.Register(s.echo, s.cfg)
+	s.registerRoutes()
 
 	go func() {
-		err := s.echo.Start(":" + strconv.Itoa(s.cfg.Port))
+		err := s.e.Start(":" + strconv.Itoa(s.cfg.Port))
 		if err != nil && err != http.ErrServerClosed {
 			s.logger.Fatal("unexpected shutdown the server", zap.Error(err))
 		}
@@ -50,7 +71,7 @@ func (s server) Start() {
 	defer cancel()
 
 	s.logger.Info("shutting down the server")
-	if err := s.echo.Shutdown(ctx); err != nil {
+	if err := s.e.Shutdown(ctx); err != nil {
 		s.logger.Fatal("unexpected shutdown the server", zap.Error(err))
 	}
 }
