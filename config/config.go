@@ -1,8 +1,8 @@
 package config
 
 import (
-	"fmt"
 	"github.com/caarlos0/env"
+	"go.uber.org/zap"
 )
 
 type Configuration struct {
@@ -12,10 +12,10 @@ type Configuration struct {
 	AdminPassword string `env:"ADMIN_PASSWORD" envDefault:"admin!"`
 }
 
-func New() *Configuration {
+func New(logger *zap.Logger) *Configuration {
 	cfg := Configuration{}
 	if err := env.Parse(&cfg); err != nil {
-		fmt.Errorf("%+v\n", err)
+		logger.Error("parsing config error", zap.Error(err))
 	}
 
 	return &cfg
