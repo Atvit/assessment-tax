@@ -56,7 +56,10 @@ func (h handler) CalculateTax(c echo.Context) error {
 		})
 	}
 
-	result, err := calculate(req.TotalIncome)
+	result, err := Calculate(&Tax{
+		Income: req.TotalIncome,
+		Wht:    req.Wht,
+	})
 	if err != nil {
 		h.logger.Error("tax calculation failed", zap.Error(err))
 		return c.JSON(http.StatusBadRequest, utils.ErrResponse{
