@@ -20,7 +20,8 @@ type Request struct {
 }
 
 type Response struct {
-	Tax float64 `json:"tax"`
+	Tax       float64 `json:"tax"`
+	TaxRefund float64 `json:"taxRefund,omitempty"`
 }
 
 type Handler interface {
@@ -56,9 +57,17 @@ func (h handler) CalculateTax(c echo.Context) error {
 		})
 	}
 
-	result, err := Calculate(&Tax{
-		Income: req.TotalIncome,
-		Wht:    req.Wht,
+	var taxAllowances []TaxAllowance
+	for _, allowances := range req.Allowances {
+		taxAllowances = append(taxAllowances, TaxAllowance{
+			AllowanceType: allowances.AllowanceType,
+			Amount:        allowances.Amount,
+		})
+	}
+	taxAmount, refundAmount, err := Calculate(&Tax{
+		Income:     req.TotalIncome,
+		Wht:        req.Wht,
+		Allowances: taxAllowances,
 	})
 	if err != nil {
 		h.logger.Error("tax calculation failed", zap.Error(err))
@@ -68,6 +77,7 @@ func (h handler) CalculateTax(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, Response{
-		Tax: result,
+		Tax:       taxAmount,
+		TaxRefund: refundAmount,
 	})
 }

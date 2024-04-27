@@ -2,12 +2,25 @@ package tax
 
 import (
 	"github.com/Atvit/assessment-tax/errs"
+	"github.com/Atvit/assessment-tax/utils"
 	"math"
 )
 
+const (
+	personal = "personal"
+	donation = "donation"
+	kReceipt = "k-receipt"
+)
+
+type TaxAllowance struct {
+	AllowanceType string
+	Amount        float64
+}
+
 type Tax struct {
-	Income float64
-	Wht    float64
+	Income     float64
+	Wht        float64
+	Allowances []TaxAllowance
 }
 
 const precision = 1
@@ -18,36 +31,25 @@ func round(num float64, precision int) float64 {
 	return rounded
 }
 
-func validateInput(t *Tax) error {
-	if t.Income < 0 {
-		return errs.ErrValueMustBePositive
-	}
-
-	if t.Wht < 0 {
-		return errs.ErrValueMustBePositive
-	}
-
-	if t.Wht > t.Income {
-		return errs.ErrWhtMustLowerThanOrEqualIncome
-	}
-
-	return nil
-}
-
-var Calculate = func(t *Tax) (float64, error) {
-	err := validateInput(t)
+var Calculate = func(t *Tax) (float64, float64, error) {
+	err := validate(t)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	personalAllowance := 60000.00
+	t.Allowances = append(t.Allowances, TaxAllowance{
+		AllowanceType: "personal",
+		Amount:        personalAllowance,
+	})
+	deductAmount := getDeductAmount(t.Allowances)
+	taxableIncome := t.Income - deductAmount
+	taxAmount := 0.0
+	refundAmount := 0.0
 
 	if t.Income <= 150000 {
-		return 0, nil
+		return 0, t.Wht, nil
 	}
-
-	taxableIncome := t.Income - personalAllowance
-	taxAmount := 0.0
 
 	if taxableIncome > 150000 {
 		if taxableIncome <= 500000 {
@@ -78,6 +80,52 @@ var Calculate = func(t *Tax) (float64, error) {
 	}
 
 	taxAmount -= t.Wht
+	if taxAmount < 0 {
+		refundAmount = math.Abs(taxAmount)
+		taxAmount = 0
+	}
 
-	return round(taxAmount, precision), nil
+	return round(taxAmount, precision), round(refundAmount, precision), nil
+}
+
+func validate(t *Tax) error {
+	if ok := utils.Gte(t.Income, 0); !ok {
+		return errs.ErrValueMustBePositive
+	}
+
+	if ok := utils.Gte(t.Wht, 0); !ok {
+		return errs.ErrValueMustBePositive
+	}
+
+	if ok := utils.Lte(t.Wht, t.Income); !ok {
+		return errs.ErrWhtMustLowerThanOrEqualIncome
+	}
+
+	for _, allowance := range t.Allowances {
+		if ok := utils.Gte(allowance.Amount, 0); !ok {
+			return errs.ErrValueMustBePositive
+		}
+
+		if ok := utils.Oneof(allowance.AllowanceType, personal, donation, kReceipt); !ok {
+			return errs.ErrIncorrectAllowanceType
+		}
+	}
+
+	return nil
+}
+
+func getDeductAmount(allowances []TaxAllowance) float64 {
+	amount := 0.00
+
+	for _, allowance := range allowances {
+		if allowance.AllowanceType == donation {
+			if allowance.Amount > 100000 {
+				allowance.Amount = 100000
+			}
+		}
+
+		amount += allowance.Amount
+	}
+
+	return amount
 }

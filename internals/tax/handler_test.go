@@ -19,7 +19,7 @@ func TestGetTax(t *testing.T) {
 		requestBody     []byte
 		expectedStatus  int
 		expectedTax     float64
-		mockCalculateFn func(t *Tax) (float64, error)
+		mockCalculateFn func(t *Tax) (float64, float64, error)
 	}{
 		{
 			name:            "invalid request",
@@ -32,7 +32,7 @@ func TestGetTax(t *testing.T) {
 			requestBody:     []byte(`{"totalIncome": 50000, "wht": 5000, "allowances": [{"allowanceType": "donation", "amount": 1000}]}`),
 			expectedStatus:  http.StatusOK,
 			expectedTax:     1000,
-			mockCalculateFn: func(t *Tax) (float64, error) { return 1000, nil },
+			mockCalculateFn: func(t *Tax) (float64, float64, error) { return 1000, 0, nil },
 		},
 		{
 			name:            "invalid totalIncome",
@@ -50,7 +50,7 @@ func TestGetTax(t *testing.T) {
 			name:            "tax calculation error",
 			requestBody:     []byte(`{"totalIncome": 50000}`),
 			expectedStatus:  http.StatusBadRequest,
-			mockCalculateFn: func(t *Tax) (float64, error) { return 0, errors.New("calculation error") },
+			mockCalculateFn: func(t *Tax) (float64, float64, error) { return 0, 0, errors.New("calculation error") },
 		},
 	}
 
