@@ -56,9 +56,18 @@ func (h handler) CalculateTax(c echo.Context) error {
 		})
 	}
 
+	var taxAllowances []TaxAllowance
+	for _, allowances := range req.Allowances {
+		taxAllowances = append(taxAllowances, TaxAllowance{
+			AllowanceType: allowances.AllowanceType,
+			Amount:        allowances.Amount,
+		})
+	}
+
 	result, err := Calculate(&Tax{
-		Income: req.TotalIncome,
-		Wht:    req.Wht,
+		Income:     req.TotalIncome,
+		Wht:        req.Wht,
+		Allowances: taxAllowances,
 	})
 	if err != nil {
 		h.logger.Error("tax calculation failed", zap.Error(err))
