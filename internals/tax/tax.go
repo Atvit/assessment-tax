@@ -3,6 +3,7 @@ package tax
 import (
 	"github.com/Atvit/assessment-tax/errs"
 	"github.com/Atvit/assessment-tax/utils"
+	"github.com/shopspring/decimal"
 	"math"
 )
 
@@ -24,15 +25,21 @@ const (
 
 type TaxLevelMap map[string]TaxLevel
 
+type TaxAllowanceSetting struct {
+	Personal float64
+	KReceipt float64
+}
+
 type TaxAllowance struct {
 	AllowanceType string
 	Amount        float64
 }
 
 type Tax struct {
-	Income     float64
-	Wht        float64
-	Allowances []TaxAllowance
+	Income           float64
+	Wht              float64
+	Allowances       []TaxAllowance
+	AllowanceSetting TaxAllowanceSetting
 }
 
 type TaxLevel struct {
@@ -56,7 +63,12 @@ var Calculate = func(t *Tax) (float64, float64, []TaxLevel, error) {
 }
 
 func addPersonalAllowance(t *Tax) {
-	personalAllowance := 60000.00
+	defaultPersonalAllowance := 60000.00
+	personalAllowance := t.AllowanceSetting.Personal
+	if decimal.NewFromFloat(personalAllowance).IsZero() {
+		personalAllowance = defaultPersonalAllowance
+	}
+
 	t.Allowances = append(t.Allowances, TaxAllowance{
 		AllowanceType: "personal",
 		Amount:        personalAllowance,
