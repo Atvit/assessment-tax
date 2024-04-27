@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +19,7 @@ func TestGetTax(t *testing.T) {
 		requestBody     []byte
 		expectedStatus  int
 		expectedTax     float64
-		mockCalculateFn func(float64) (float64, error)
+		mockCalculateFn func(t *Tax) (float64, error)
 	}{
 		{
 			name:            "invalid request",
@@ -33,7 +32,7 @@ func TestGetTax(t *testing.T) {
 			requestBody:     []byte(`{"totalIncome": 50000, "wht": 5000, "allowances": [{"allowanceType": "donation", "amount": 1000}]}`),
 			expectedStatus:  http.StatusOK,
 			expectedTax:     1000,
-			mockCalculateFn: func(income float64) (float64, error) { return 1000, nil },
+			mockCalculateFn: func(t *Tax) (float64, error) { return 1000, nil },
 		},
 		{
 			name:            "invalid totalIncome",
@@ -51,7 +50,7 @@ func TestGetTax(t *testing.T) {
 			name:            "tax calculation error",
 			requestBody:     []byte(`{"totalIncome": 50000}`),
 			expectedStatus:  http.StatusBadRequest,
-			mockCalculateFn: func(income float64) (float64, error) { return 0, errors.New("calculation error") },
+			mockCalculateFn: func(t *Tax) (float64, error) { return 0, errors.New("calculation error") },
 		},
 	}
 
@@ -71,14 +70,13 @@ func TestGetTax(t *testing.T) {
 				validate: validate,
 			}
 
-			originalCalculate := calculate
+			originalCalculate := Calculate
 			if tt.mockCalculateFn != nil {
-				calculate = tt.mockCalculateFn
+				Calculate = tt.mockCalculateFn
 			}
-			defer func() { calculate = originalCalculate }()
+			defer func() { Calculate = originalCalculate }()
 
 			if assert.NoError(t, h.CalculateTax(c)) {
-				fmt.Println("rec", rec)
 				assert.Equal(t, tt.expectedStatus, rec.Code)
 				if rec.Code == http.StatusOK {
 					var resp Response

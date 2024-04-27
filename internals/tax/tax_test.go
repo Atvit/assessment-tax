@@ -88,7 +88,9 @@ func TestCalculateTax(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotTax, gotErr := calculate(tt.income)
+			gotTax, gotErr := Calculate(&Tax{
+				Income: tt.income,
+			})
 			if gotErr != tt.wantErr {
 				t.Errorf("calculateTax error = %v, wantErr %v", gotErr, tt.wantErr)
 				return
