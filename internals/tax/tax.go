@@ -3,6 +3,7 @@ package tax
 import (
 	"github.com/Atvit/assessment-tax/errs"
 	"github.com/Atvit/assessment-tax/utils"
+	"github.com/shopspring/decimal"
 	"math"
 )
 
@@ -24,15 +25,21 @@ const (
 
 type TaxLevelMap map[string]TaxLevel
 
+type TaxAllowanceSetting struct {
+	Personal float64
+	KReceipt float64
+}
+
 type TaxAllowance struct {
 	AllowanceType string
 	Amount        float64
 }
 
 type Tax struct {
-	Income     float64
-	Wht        float64
-	Allowances []TaxAllowance
+	Income           float64
+	Wht              float64
+	Allowances       []TaxAllowance
+	AllowanceSetting TaxAllowanceSetting
 }
 
 type TaxLevel struct {
@@ -56,7 +63,12 @@ var Calculate = func(t *Tax) (float64, float64, []TaxLevel, error) {
 }
 
 func addPersonalAllowance(t *Tax) {
-	personalAllowance := 60000.00
+	defaultPersonalAllowance := 60000.00
+	personalAllowance := t.AllowanceSetting.Personal
+	if decimal.NewFromFloat(personalAllowance).IsZero() {
+		personalAllowance = defaultPersonalAllowance
+	}
+
 	t.Allowances = append(t.Allowances, TaxAllowance{
 		AllowanceType: "personal",
 		Amount:        personalAllowance,
@@ -88,20 +100,20 @@ func calculateProgressiveTax(taxableIncome float64) (float64, []TaxLevel) {
 	}
 
 	if taxableIncome > 150000 {
-		tax := calculateTaxAmount(taxableIncome, 150000, 500000, 0.10)
+		tax := calculateTaxBracket(taxableIncome, 150000, 500000, 0.10)
 
 		taxAmount += tax
 		updateTaxLevel(taxLevelsMap, level2, utils.Round(tax, precision))
 	}
 
 	if taxableIncome > 500000 {
-		tax := calculateTaxAmount(taxableIncome, 500000, 1000000, 0.15)
+		tax := calculateTaxBracket(taxableIncome, 500000, 1000000, 0.15)
 
 		taxAmount += tax
 		updateTaxLevel(taxLevelsMap, level3, utils.Round(tax, precision))
 	}
 	if taxableIncome > 1000000 {
-		tax := calculateTaxAmount(taxableIncome, 1000000, 2000000, 0.20)
+		tax := calculateTaxBracket(taxableIncome, 1000000, 2000000, 0.20)
 
 		taxAmount += tax
 		updateTaxLevel(taxLevelsMap, level4, utils.Round(tax, precision))
@@ -116,10 +128,11 @@ func calculateProgressiveTax(taxableIncome float64) (float64, []TaxLevel) {
 	return utils.Round(taxAmount, precision), taxLevels
 }
 
-func calculateTaxAmount(income, lower, upper float64, rate float64) float64 {
+func calculateTaxBracket(income, lower, upper float64, rate float64) float64 {
 	if income <= upper {
 		return (income - lower) * rate
 	}
+
 	return (upper - lower) * rate
 }
 

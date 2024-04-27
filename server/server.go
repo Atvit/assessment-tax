@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 	"github.com/Atvit/assessment-tax/config"
+	"github.com/Atvit/assessment-tax/internals/setting"
 	"github.com/Atvit/assessment-tax/internals/tax"
 	mw "github.com/Atvit/assessment-tax/middleware"
-	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/zap"
@@ -24,18 +24,30 @@ type server struct {
 	e      *echo.Echo
 	cfg    *config.Configuration
 	logger *zap.Logger
+
+	settingHandler setting.Handler
+	taxHandler     tax.Handler
 }
 
-func New(e *echo.Echo, cfg *config.Configuration, logger *zap.Logger) Server {
+func New(
+	e *echo.Echo,
+	cfg *config.Configuration,
+	logger *zap.Logger,
+
+	taxHandler tax.Handler,
+	settingHandler setting.Handler,
+) Server {
 	return &server{
 		e:      e,
 		cfg:    cfg,
 		logger: logger,
+
+		taxHandler:     taxHandler,
+		settingHandler: settingHandler,
 	}
 }
 
 func (s server) registerRoutes() {
-	validate := validator.New()
 	e := s.e
 
 	e.GET("/", func(c echo.Context) error {
@@ -46,10 +58,10 @@ func (s server) registerRoutes() {
 	admin.Use(middleware.BasicAuth(func(username string, password string, c echo.Context) (bool, error) {
 		return mw.Authenticate(username, password, s.cfg)
 	}))
+	admin.POST("/deductions/personal", s.settingHandler.UpdatePersonalDeduction)
 
-	taxHandler := tax.NewHandler(s.logger, validate)
 	tax := e.Group("/tax")
-	tax.POST("/calculations", taxHandler.CalculateTax)
+	tax.POST("/calculations", s.taxHandler.CalculateTax)
 }
 
 func (s server) Start() {

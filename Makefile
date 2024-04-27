@@ -18,3 +18,7 @@ coverage:
 .PHONY: vet
 vet:
 	go vet ./...
+
+.PHONY: mockgen
+mockery:
+	mockery --all --dir=./internals/setting --output=./mocks/setting --case=underscore --outpkg=mocks

@@ -1,6 +1,7 @@
 package tax
 
 import (
+	"github.com/Atvit/assessment-tax/internals/setting"
 	"github.com/Atvit/assessment-tax/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
@@ -10,7 +11,7 @@ import (
 
 type Allowance struct {
 	AllowanceType string  `json:"allowanceType" validate:"omitempty,oneof=donation k-receipt"`
-	Amount        float64 `json:"amount" validate:"omitempty,gt=0"`
+	Amount        float64 `json:"amount" validate:"omitempty,gte=0"`
 }
 
 type Request struct {
@@ -30,14 +31,20 @@ type Handler interface {
 }
 
 type handler struct {
-	logger   *zap.Logger
-	validate *validator.Validate
+	logger      *zap.Logger
+	validate    *validator.Validate
+	settingRepo setting.Repository
 }
 
-func NewHandler(logger *zap.Logger, validate *validator.Validate) Handler {
+func NewHandler(
+	logger *zap.Logger,
+	validate *validator.Validate,
+	settingRepo setting.Repository,
+) Handler {
 	return handler{
-		logger:   logger,
-		validate: validate,
+		logger:      logger,
+		validate:    validate,
+		settingRepo: settingRepo,
 	}
 }
 
@@ -58,6 +65,14 @@ func (h handler) CalculateTax(c echo.Context) error {
 		})
 	}
 
+	allowanceSetting, err := h.settingRepo.Get()
+	if err != nil {
+		h.logger.Error("get allowance setting failed", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, utils.ErrResponse{
+			Error: err.Error(),
+		})
+	}
+
 	var taxAllowances []TaxAllowance
 	for _, allowances := range req.Allowances {
 		taxAllowances = append(taxAllowances, TaxAllowance{
@@ -69,6 +84,10 @@ func (h handler) CalculateTax(c echo.Context) error {
 		Income:     req.TotalIncome,
 		Wht:        req.Wht,
 		Allowances: taxAllowances,
+		AllowanceSetting: TaxAllowanceSetting{
+			Personal: allowanceSetting.Personal,
+			KReceipt: allowanceSetting.KReceipt,
+		},
 	})
 	if err != nil {
 		h.logger.Error("tax calculation failed", zap.Error(err))
