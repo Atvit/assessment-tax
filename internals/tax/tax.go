@@ -2,11 +2,20 @@ package tax
 
 import (
 	"github.com/Atvit/assessment-tax/errs"
+	"math"
 )
 
 type Tax struct {
 	Income float64
 	Wht    float64
+}
+
+const precision = 1
+
+func round(num float64, precision int) float64 {
+	power := math.Pow10(precision)
+	rounded := math.Round(num*power) / power
+	return rounded
 }
 
 func validateInput(t *Tax) error {
@@ -70,5 +79,5 @@ var Calculate = func(t *Tax) (float64, error) {
 
 	taxAmount -= t.Wht
 
-	return taxAmount, nil
+	return round(taxAmount, precision), nil
 }

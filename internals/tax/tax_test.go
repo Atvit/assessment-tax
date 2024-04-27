@@ -51,7 +51,7 @@ func TestCalculateTax(t *testing.T) {
 		{
 			name:    "Income Above Upper Bracket Limit",
 			income:  500001,
-			wantTax: 29000.100000000002,
+			wantTax: 29000.1,
 			wantErr: nil,
 		},
 		{
@@ -63,7 +63,7 @@ func TestCalculateTax(t *testing.T) {
 		{
 			name:    "Income Above Second Upper Bracket Limit",
 			income:  1000001,
-			wantTax: 101000.15,
+			wantTax: 101000.2,
 			wantErr: nil,
 		},
 		{
