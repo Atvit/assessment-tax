@@ -25,67 +25,72 @@ type Tax struct {
 
 const precision = 1
 
-func round(num float64, precision int) float64 {
-	power := math.Pow10(precision)
-	rounded := math.Round(num*power) / power
-	return rounded
-}
-
 var Calculate = func(t *Tax) (float64, float64, error) {
 	err := validate(t)
 	if err != nil {
 		return 0, 0, err
 	}
 
+	addPersonalAllowance(t)
+	deductAmount := getDeductAmount(t.Allowances)
+	taxableIncome := t.Income - deductAmount
+
+	taxAmount, refundAmount := calculateTax(taxableIncome, t.Wht)
+
+	return round(taxAmount, precision), round(refundAmount, precision), nil
+}
+
+func addPersonalAllowance(t *Tax) {
 	personalAllowance := 60000.00
 	t.Allowances = append(t.Allowances, TaxAllowance{
 		AllowanceType: "personal",
 		Amount:        personalAllowance,
 	})
-	deductAmount := getDeductAmount(t.Allowances)
-	taxableIncome := t.Income - deductAmount
+}
+
+func calculateTax(taxableIncome, wht float64) (float64, float64) {
 	taxAmount := 0.0
 	refundAmount := 0.0
 
-	if t.Income <= 150000 {
-		return 0, t.Wht, nil
+	if taxableIncome <= 150000 {
+		return 0, wht
 	}
 
-	if taxableIncome > 150000 {
-		if taxableIncome <= 500000 {
-			taxAmount += (taxableIncome - 150000) * 0.10
-		} else {
-			taxAmount += (500000 - 150000) * 0.10
-		}
-	}
+	taxAmount = calculateProgressiveTax(taxableIncome)
+	taxAmount -= wht
 
-	if taxableIncome > 500000 {
-		if taxableIncome <= 1000000 {
-			taxAmount += (taxableIncome - 500000) * 0.15
-		} else {
-			taxAmount += (1000000 - 500000) * 0.15
-		}
-	}
-
-	if taxableIncome > 1000000 {
-		if taxableIncome <= 2000000 {
-			taxAmount += (taxableIncome - 1000000) * 0.20
-		} else {
-			taxAmount += (2000000 - 1000000) * 0.20
-		}
-	}
-
-	if taxableIncome > 2000000 {
-		taxAmount += (taxableIncome - 2000000) * 0.35
-	}
-
-	taxAmount -= t.Wht
 	if taxAmount < 0 {
 		refundAmount = math.Abs(taxAmount)
 		taxAmount = 0
 	}
 
-	return round(taxAmount, precision), round(refundAmount, precision), nil
+	return taxAmount, refundAmount
+}
+
+func calculateProgressiveTax(taxableIncome float64) float64 {
+	taxAmount := 0.0
+
+	if taxableIncome > 150000 {
+		taxAmount += calculateTaxAmount(taxableIncome, 150000, 500000, 0.10)
+	}
+	if taxableIncome > 500000 {
+		taxAmount += calculateTaxAmount(taxableIncome, 500000, 1000000, 0.15)
+	}
+	if taxableIncome > 1000000 {
+		taxAmount += calculateTaxAmount(taxableIncome, 1000000, 2000000, 0.20)
+	}
+	if taxableIncome > 2000000 {
+		taxAmount += (taxableIncome - 2000000) * 0.35
+	}
+
+	return taxAmount
+}
+
+func calculateTaxAmount(income, lower, upper float64, rate float64) float64 {
+	if income <= upper {
+		return (income - lower) * rate
+	}
+	return (upper - lower) * rate
 }
 
 func validate(t *Tax) error {
@@ -112,6 +117,12 @@ func validate(t *Tax) error {
 	}
 
 	return nil
+}
+
+func round(num float64, precision int) float64 {
+	power := math.Pow10(precision)
+	rounded := math.Round(num*power) / power
+	return rounded
 }
 
 func getDeductAmount(allowances []TaxAllowance) float64 {
