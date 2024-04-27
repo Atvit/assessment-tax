@@ -31,14 +31,10 @@ func round(num float64, precision int) float64 {
 	return rounded
 }
 
-var Calculate = func(t *Tax) (float64, error) {
+var Calculate = func(t *Tax) (float64, float64, error) {
 	err := validate(t)
 	if err != nil {
-		return 0, err
-	}
-
-	if t.Income <= 150000 {
-		return 0, nil
+		return 0, 0, err
 	}
 
 	personalAllowance := 60000.00
@@ -49,6 +45,11 @@ var Calculate = func(t *Tax) (float64, error) {
 	deductAmount := getDeductAmount(t.Allowances)
 	taxableIncome := t.Income - deductAmount
 	taxAmount := 0.0
+	refundAmount := 0.0
+
+	if t.Income <= 150000 {
+		return 0, t.Wht, nil
+	}
 
 	if taxableIncome > 150000 {
 		if taxableIncome <= 500000 {
@@ -79,8 +80,12 @@ var Calculate = func(t *Tax) (float64, error) {
 	}
 
 	taxAmount -= t.Wht
+	if taxAmount < 0 {
+		refundAmount = math.Abs(taxAmount)
+		taxAmount = 0
+	}
 
-	return round(taxAmount, precision), nil
+	return round(taxAmount, precision), round(refundAmount, precision), nil
 }
 
 func validate(t *Tax) error {
@@ -97,7 +102,7 @@ func validate(t *Tax) error {
 	}
 
 	for _, allowance := range t.Allowances {
-		if ok := utils.Gt(allowance.Amount, 0); !ok {
+		if ok := utils.Gte(allowance.Amount, 0); !ok {
 			return errs.ErrValueMustBePositive
 		}
 
