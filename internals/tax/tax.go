@@ -52,7 +52,7 @@ var Calculate = func(t *Tax) (float64, float64, []TaxLevel, error) {
 
 	taxAmount, refundAmount, taxLevels := calculateTax(taxableIncome, t.Wht)
 
-	return utils.Round(taxAmount, precision), utils.Round(refundAmount, precision), taxLevels, nil
+	return taxAmount, refundAmount, taxLevels, nil
 }
 
 func addPersonalAllowance(t *Tax) {
@@ -75,7 +75,7 @@ func calculateTax(taxableIncome, wht float64) (float64, float64, []TaxLevel) {
 		taxAmount = 0
 	}
 
-	return taxAmount, refundAmount, taxLevels
+	return taxAmount, utils.Round(refundAmount, precision), taxLevels
 }
 
 func calculateProgressiveTax(taxableIncome float64) (float64, []TaxLevel) {
@@ -91,29 +91,29 @@ func calculateProgressiveTax(taxableIncome float64) (float64, []TaxLevel) {
 		tax := calculateTaxAmount(taxableIncome, 150000, 500000, 0.10)
 
 		taxAmount += tax
-		updateTaxLevel(taxLevelsMap, level2, tax)
+		updateTaxLevel(taxLevelsMap, level2, utils.Round(tax, precision))
 	}
 
 	if taxableIncome > 500000 {
 		tax := calculateTaxAmount(taxableIncome, 500000, 1000000, 0.15)
 
 		taxAmount += tax
-		updateTaxLevel(taxLevelsMap, level3, tax)
+		updateTaxLevel(taxLevelsMap, level3, utils.Round(tax, precision))
 	}
 	if taxableIncome > 1000000 {
 		tax := calculateTaxAmount(taxableIncome, 1000000, 2000000, 0.20)
 
 		taxAmount += tax
-		updateTaxLevel(taxLevelsMap, level4, tax)
+		updateTaxLevel(taxLevelsMap, level4, utils.Round(tax, precision))
 	}
 	if taxableIncome > 2000000 {
 		tax := (taxableIncome - 2000000) * 0.35
 
 		taxAmount += tax
-		updateTaxLevel(taxLevelsMap, level5, tax)
+		updateTaxLevel(taxLevelsMap, level5, utils.Round(tax, precision))
 	}
 
-	return taxAmount, taxLevels
+	return utils.Round(taxAmount, precision), taxLevels
 }
 
 func calculateTaxAmount(income, lower, upper float64, rate float64) float64 {
@@ -167,11 +167,11 @@ func getDeductAmount(allowances []TaxAllowance) float64 {
 
 func initializeTaxLevelsMap() TaxLevelMap {
 	return map[string]TaxLevel{
-		level1: {Level: "0-150,000", Tax: new(float64)},
-		level2: {Level: "150,001-500,000", Tax: new(float64)},
-		level3: {Level: "500,001-1,000,000", Tax: new(float64)},
-		level4: {Level: "1,000,001-2,000,000", Tax: new(float64)},
-		level5: {Level: "2,000,001 ขึ้นไป", Tax: new(float64)},
+		level1: {Level: getLevelDescription(level1), Tax: new(float64)},
+		level2: {Level: getLevelDescription(level2), Tax: new(float64)},
+		level3: {Level: getLevelDescription(level3), Tax: new(float64)},
+		level4: {Level: getLevelDescription(level4), Tax: new(float64)},
+		level5: {Level: getLevelDescription(level5), Tax: new(float64)},
 	}
 }
 
@@ -179,6 +179,22 @@ func updateTaxLevel(taxLevels TaxLevelMap, level string, amount float64) {
 	if taxLevel, exists := taxLevels[level]; exists {
 		*taxLevel.Tax += amount
 	}
+}
+
+func getLevelDescription(level string) string {
+	levelDescriptionMap := map[string]string{
+		level1: "0-150,000",
+		level2: "150,001-500,000",
+		level3: "500,001-1,000,000",
+		level4: "1,000,001-2,000,000",
+		level5: "2,000,001 ขึ้นไป",
+	}
+
+	if description, ok := levelDescriptionMap[level]; ok {
+		return description
+	}
+
+	return ""
 }
 
 func getTaxLevels(taxLevels TaxLevelMap) []TaxLevel {

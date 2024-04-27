@@ -2,199 +2,232 @@ package tax
 
 import (
 	"github.com/Atvit/assessment-tax/errs"
+	"github.com/Atvit/assessment-tax/utils"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestCalculateTax(t *testing.T) {
 	tests := []struct {
-		name       string
-		income     float64
-		wht        float64
-		wantTax    float64
-		wantRefund float64
-		wantErr    error
-		allowances []TaxAllowance
+		name           string
+		income         float64
+		wht            float64
+		expectedTax    float64
+		expectedRefund float64
+		expectedErr    error
+		expectedLevels []TaxLevel
+		allowances     []TaxAllowance
 	}{
 		{
-			name:       "negative income",
-			income:     -1000,
-			wantTax:    0,
-			wantRefund: 0,
-			wantErr:    errs.ErrValueMustBePositive,
+			name:           "negative income",
+			income:         -1000,
+			expectedTax:    0,
+			expectedRefund: 0,
+			expectedErr:    errs.ErrValueMustBePositive,
 		},
 		{
-			name:       "zero income",
-			income:     0,
-			wantTax:    0,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "zero income",
+			income:         0,
+			expectedTax:    0,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(),
 		},
 		{
-			name:       "income below personal allowance",
-			income:     50000,
-			wantTax:    0,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "income below personal allowance",
+			income:         50000,
+			expectedTax:    0,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(),
 		},
 		{
-			name:       "income equal to personal allowance",
-			income:     60000,
-			wantTax:    0,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "income equal to personal allowance",
+			income:         60000,
+			expectedTax:    0,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(),
 		},
 		{
-			name:       "income above personal allowance",
-			income:     150001,
-			wantTax:    0,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "income above personal allowance",
+			income:         150001,
+			expectedTax:    0,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(),
 		},
 		{
-			name:       "income at upper bracket limit",
-			income:     500000,
-			wantTax:    29000,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "income at upper bracket limit",
+			income:         500000,
+			expectedTax:    29000,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(TaxLevel{Level: level2, Tax: utils.ToPointer(29000.0)}),
 		},
 		{
-			name:       "income above upper bracket limit",
-			income:     500001,
-			wantTax:    29000.1,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "income above upper bracket limit",
+			income:         500001,
+			expectedTax:    29000.1,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(TaxLevel{Level: level2, Tax: utils.ToPointer(29000.1)}),
 		},
 		{
-			name:       "income at second upper bracket limit",
-			income:     1000000,
-			wantTax:    101000,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "income at second upper bracket limit",
+			income:         1000000,
+			expectedTax:    101000,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(
+				TaxLevel{level2, utils.ToPointer(35000.0)},
+				TaxLevel{level3, utils.ToPointer(66000.0)},
+			),
 		},
 		{
-			name:       "income above second upper bracket limit",
-			income:     1000001,
-			wantTax:    101000.2,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "income above second upper bracket limit",
+			income:         1000001,
+			expectedTax:    101000.2,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(
+				TaxLevel{level2, utils.ToPointer(35000.0)},
+				TaxLevel{level3, utils.ToPointer(66000.2)},
+			),
 		},
 		{
-			name:       "income at third upper bracket limit",
-			income:     2000000,
-			wantTax:    298000,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "income at third upper bracket limit",
+			income:         2000000,
+			expectedTax:    298000,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(
+				TaxLevel{level2, utils.ToPointer(35000.0)},
+				TaxLevel{level3, utils.ToPointer(75000.0)},
+				TaxLevel{level4, utils.ToPointer(188000.0)},
+			),
 		},
 		{
-			name:       "income above third upper bracket limit",
-			income:     2000001,
-			wantTax:    298000.2,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "income above third upper bracket limit",
+			income:         2000001,
+			expectedTax:    298000.2,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(
+				TaxLevel{level2, utils.ToPointer(35000.0)},
+				TaxLevel{level3, utils.ToPointer(75000.0)},
+				TaxLevel{level4, utils.ToPointer(188000.2)},
+			),
 		},
 		{
-			name:       "high income",
-			income:     3000000,
-			wantTax:    639000,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "high income",
+			income:         3000000,
+			expectedTax:    639000,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(
+				TaxLevel{level2, utils.ToPointer(35000.0)},
+				TaxLevel{level3, utils.ToPointer(75000.0)},
+				TaxLevel{level4, utils.ToPointer(200000.0)},
+				TaxLevel{level5, utils.ToPointer(329000.0)},
+			),
 		},
 		{
-			name:       "with holding tax",
-			income:     500000,
-			wht:        25000,
-			wantTax:    4000,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "with holding tax",
+			income:         500000,
+			wht:            25000,
+			expectedTax:    4000,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(TaxLevel{level2, utils.ToPointer(29000.0)}),
 		},
 		{
-			name:       "negative with holding tax",
-			income:     500000,
-			wht:        -25000,
-			wantTax:    0,
-			wantRefund: 0,
-			wantErr:    errs.ErrValueMustBePositive,
+			name:           "negative with holding tax",
+			income:         500000,
+			wht:            -25000,
+			expectedTax:    0,
+			expectedRefund: 0,
+			expectedErr:    errs.ErrValueMustBePositive,
 		},
 		{
-			name:       "with holding tax greater than income",
-			income:     500000,
-			wht:        500001,
-			wantTax:    0,
-			wantRefund: 0,
-			wantErr:    errs.ErrWhtMustLowerThanOrEqualIncome,
+			name:           "with holding tax greater than income",
+			income:         500000,
+			wht:            500001,
+			expectedTax:    0,
+			expectedRefund: 0,
+			expectedErr:    errs.ErrWhtMustLowerThanOrEqualIncome,
 		},
 		{
-			name:       "invalid allowance type",
-			income:     500000,
-			wht:        0,
-			wantTax:    0,
-			wantRefund: 0,
-			allowances: []TaxAllowance{
-				{AllowanceType: personal, Amount: 40000},
-				{AllowanceType: "invalid", Amount: 50000},
-			},
-			wantErr: errs.ErrIncorrectAllowanceType,
+			name:           "invalid allowance type",
+			income:         500000,
+			wht:            0,
+			expectedTax:    0,
+			expectedRefund: 0,
+			allowances:     []TaxAllowance{{personal, 40000}, {"invalid", 50000}},
+			expectedErr:    errs.ErrIncorrectAllowanceType,
 		},
 		{
-			name:       "allowance amount less than zero",
-			income:     500000,
-			wht:        0,
-			allowances: []TaxAllowance{{AllowanceType: personal, Amount: -1000}},
-			wantTax:    0,
-			wantRefund: 0,
-			wantErr:    errs.ErrValueMustBePositive,
+			name:           "allowance amount less than zero",
+			income:         500000,
+			wht:            0,
+			allowances:     []TaxAllowance{{personal, -1000}},
+			expectedTax:    0,
+			expectedRefund: 0,
+			expectedErr:    errs.ErrValueMustBePositive,
 		},
 		{
-			name:       "empty allowance slice",
-			income:     500000,
-			wht:        0,
-			allowances: []TaxAllowance{},
-			wantTax:    29000,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "empty allowance slice",
+			income:         500000,
+			wht:            0,
+			allowances:     []TaxAllowance{},
+			expectedTax:    29000,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(TaxLevel{level2, utils.ToPointer(29000.0)}),
 		},
 		{
-			name:       "donation allowance",
-			income:     500000,
-			wht:        0,
-			allowances: []TaxAllowance{{AllowanceType: donation, Amount: 200000}},
-			wantTax:    19000,
-			wantRefund: 0,
-			wantErr:    nil,
+			name:           "donation allowance",
+			income:         500000,
+			wht:            0,
+			allowances:     []TaxAllowance{{donation, 200000}},
+			expectedTax:    19000,
+			expectedRefund: 0,
+			expectedErr:    nil,
+			expectedLevels: getMockTaxLevels(TaxLevel{level2, utils.ToPointer(19000.0)}),
 		},
 		{
-			name:       "get a refund if tax-exempt and have withholding tax",
-			income:     150000,
-			wht:        1000,
-			wantTax:    0,
-			wantRefund: 1000,
+			name:           "get a refund if tax-exempt and have withholding tax",
+			income:         150000,
+			wht:            1000,
+			expectedTax:    0,
+			expectedRefund: 1000,
+			expectedLevels: getMockTaxLevels(),
 		},
 		{
-			name:       "get a refund if withholding tax is greater than tax to pay",
-			income:     500000,
-			wht:        30000,
-			allowances: []TaxAllowance{{AllowanceType: donation, Amount: 200000}},
-			wantTax:    0,
-			wantRefund: 11000,
+			name:           "get a refund if withholding tax is greater than tax to pay",
+			income:         500000,
+			wht:            30000,
+			allowances:     []TaxAllowance{{AllowanceType: donation, Amount: 200000}},
+			expectedTax:    0,
+			expectedRefund: 11000,
+			expectedLevels: getMockTaxLevels(TaxLevel{level2, utils.ToPointer(19000.0)}),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotTax, gotRefund, gotErr := Calculate(&Tax{
+			taxAmount, refundAmount, taxLevels, err := Calculate(&Tax{
 				Income:     tt.income,
 				Wht:        tt.wht,
 				Allowances: tt.allowances,
 			})
-			if gotErr != tt.wantErr {
-				t.Errorf("calculateTax error = %v, wantErr %v", gotErr, tt.wantErr)
-				return
-			}
-			if gotTax != tt.wantTax {
-				t.Errorf("calculateTax = %v, want %v", gotTax, tt.wantTax)
-			}
-			if gotRefund != tt.wantRefund {
-				t.Errorf("calculateTax = %v, want %v", gotRefund, tt.wantRefund)
+
+			assert.Equal(t, tt.expectedErr, err)
+			assert.Equal(t, tt.expectedTax, taxAmount)
+			assert.Equal(t, tt.expectedRefund, refundAmount)
+
+			for i, level := range taxLevels {
+				assert.Equal(t, *tt.expectedLevels[i].Tax, *level.Tax)
 			}
 		})
 	}
