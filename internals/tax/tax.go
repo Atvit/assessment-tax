@@ -2,20 +2,51 @@ package tax
 
 import (
 	"github.com/Atvit/assessment-tax/errs"
+	"math"
 )
 
-var calculate = func(income float64) (float64, error) {
-	if income < 0 {
-		return 0, errs.ErrValueMustBePositive
+type Tax struct {
+	Income float64
+	Wht    float64
+}
+
+const precision = 1
+
+func round(num float64, precision int) float64 {
+	power := math.Pow10(precision)
+	rounded := math.Round(num*power) / power
+	return rounded
+}
+
+func validateInput(t *Tax) error {
+	if t.Income < 0 {
+		return errs.ErrValueMustBePositive
+	}
+
+	if t.Wht < 0 {
+		return errs.ErrValueMustBePositive
+	}
+
+	if t.Wht > t.Income {
+		return errs.ErrWhtMustLowerThanOrEqualIncome
+	}
+
+	return nil
+}
+
+var Calculate = func(t *Tax) (float64, error) {
+	err := validateInput(t)
+	if err != nil {
+		return 0, err
 	}
 
 	personalAllowance := 60000.00
 
-	if income <= 150000 {
+	if t.Income <= 150000 {
 		return 0, nil
 	}
 
-	taxableIncome := income - personalAllowance
+	taxableIncome := t.Income - personalAllowance
 	taxAmount := 0.0
 
 	if taxableIncome > 150000 {
@@ -46,5 +77,7 @@ var calculate = func(income float64) (float64, error) {
 		taxAmount += (taxableIncome - 2000000) * 0.35
 	}
 
-	return taxAmount, nil
+	taxAmount -= t.Wht
+
+	return round(taxAmount, precision), nil
 }

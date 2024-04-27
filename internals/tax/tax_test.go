@@ -9,6 +9,7 @@ func TestCalculateTax(t *testing.T) {
 	tests := []struct {
 		name    string
 		income  float64
+		wht     float64
 		wantTax float64
 		wantErr error
 	}{
@@ -51,7 +52,7 @@ func TestCalculateTax(t *testing.T) {
 		{
 			name:    "Income Above Upper Bracket Limit",
 			income:  500001,
-			wantTax: 29000.100000000002,
+			wantTax: 29000.1,
 			wantErr: nil,
 		},
 		{
@@ -63,7 +64,7 @@ func TestCalculateTax(t *testing.T) {
 		{
 			name:    "Income Above Second Upper Bracket Limit",
 			income:  1000001,
-			wantTax: 101000.15,
+			wantTax: 101000.2,
 			wantErr: nil,
 		},
 		{
@@ -84,11 +85,35 @@ func TestCalculateTax(t *testing.T) {
 			wantTax: 639000,
 			wantErr: nil,
 		},
+		{
+			name:    "With Holding Tax",
+			income:  500000,
+			wht:     25000,
+			wantTax: 4000,
+			wantErr: nil,
+		},
+		{
+			name:    "Negative With Holding Tax",
+			income:  500000,
+			wht:     -25000,
+			wantTax: 0,
+			wantErr: errs.ErrValueMustBePositive,
+		},
+		{
+			name:    "With Holding Tax Greater Than Income",
+			income:  500000,
+			wht:     500001,
+			wantTax: 0,
+			wantErr: errs.ErrWhtMustLowerThanOrEqualIncome,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotTax, gotErr := calculate(tt.income)
+			gotTax, gotErr := Calculate(&Tax{
+				Income: tt.income,
+				Wht:    tt.wht,
+			})
 			if gotErr != tt.wantErr {
 				t.Errorf("calculateTax error = %v, wantErr %v", gotErr, tt.wantErr)
 				return
