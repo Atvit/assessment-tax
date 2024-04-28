@@ -6,6 +6,12 @@ import (
 	"time"
 )
 
+const (
+	getStmt            = "SELECT * FROM tax_deduction_configs ORDER BY updated_at DESC LIMIT 1"
+	updatePersonalStmt = "UPDATE tax_deduction_configs SET personal = $1, updated_at = $2 WHERE id = $3 RETURNING *"
+	updateKReceiptStmt = "UPDATE tax_deduction_configs SET kreceipt = $1, updated_at = $2 WHERE id = $3 RETURNING *"
+)
+
 type Repository interface {
 	Get() (*models.DeductionConfig, error)
 	UpdatePersonalDeduction(id uint, value float64) (*models.DeductionConfig, error)
@@ -23,7 +29,7 @@ func NewRepository(db *sql.DB) Repository {
 }
 
 func (r repository) Get() (*models.DeductionConfig, error) {
-	rows, err := r.db.Query("SELECT * FROM tax_deduction_configs ORDER BY updated_at DESC LIMIT 1")
+	rows, err := r.db.Query(getStmt)
 	if err != nil {
 		return nil, err
 	}
@@ -41,8 +47,7 @@ func (r repository) Get() (*models.DeductionConfig, error) {
 }
 
 func (r repository) UpdatePersonalDeduction(id uint, value float64) (*models.DeductionConfig, error) {
-	query := `UPDATE tax_deduction_configs SET personal = $1, updated_at = $2 WHERE id = $3 RETURNING *`
-	row := r.db.QueryRow(query, value, time.Now(), id)
+	row := r.db.QueryRow(updatePersonalStmt, value, time.Now(), id)
 
 	var result models.DeductionConfig
 	err := row.Scan(&result.ID, &result.Personal, &result.KReceipt, &result.CreatedAt, &result.UpdatedAt)
@@ -54,8 +59,7 @@ func (r repository) UpdatePersonalDeduction(id uint, value float64) (*models.Ded
 }
 
 func (r repository) UpdateKReceiptDeduction(id uint, value float64) (*models.DeductionConfig, error) {
-	query := `UPDATE tax_deduction_configs SET kreceipt = $1, updated_at = $2 WHERE id = $3 RETURNING *`
-	row := r.db.QueryRow(query, value, time.Now(), id)
+	row := r.db.QueryRow(updateKReceiptStmt, value, time.Now(), id)
 
 	var result models.DeductionConfig
 	err := row.Scan(&result.ID, &result.Personal, &result.KReceipt, &result.CreatedAt, &result.UpdatedAt)
