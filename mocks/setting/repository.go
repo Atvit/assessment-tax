@@ -42,29 +42,59 @@ func (_m *Repository) Get() (*models.DeductionConfig, error) {
 	return r0, r1
 }
 
-// Update provides a mock function with given fields: id, entity
-func (_m *Repository) Update(id uint, entity *models.DeductionConfigEntity) (*models.DeductionConfig, error) {
-	ret := _m.Called(id, entity)
+// UpdateKReceiptDeduction provides a mock function with given fields: id, value
+func (_m *Repository) UpdateKReceiptDeduction(id uint, value float64) (*models.DeductionConfig, error) {
+	ret := _m.Called(id, value)
 
 	if len(ret) == 0 {
-		panic("no return value specified for Update")
+		panic("no return value specified for UpdateKReceiptDeduction")
 	}
 
 	var r0 *models.DeductionConfig
 	var r1 error
-	if rf, ok := ret.Get(0).(func(uint, *models.DeductionConfigEntity) (*models.DeductionConfig, error)); ok {
-		return rf(id, entity)
+	if rf, ok := ret.Get(0).(func(uint, float64) (*models.DeductionConfig, error)); ok {
+		return rf(id, value)
 	}
-	if rf, ok := ret.Get(0).(func(uint, *models.DeductionConfigEntity) *models.DeductionConfig); ok {
-		r0 = rf(id, entity)
+	if rf, ok := ret.Get(0).(func(uint, float64) *models.DeductionConfig); ok {
+		r0 = rf(id, value)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*models.DeductionConfig)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(uint, *models.DeductionConfigEntity) error); ok {
-		r1 = rf(id, entity)
+	if rf, ok := ret.Get(1).(func(uint, float64) error); ok {
+		r1 = rf(id, value)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UpdatePersonalDeduction provides a mock function with given fields: id, value
+func (_m *Repository) UpdatePersonalDeduction(id uint, value float64) (*models.DeductionConfig, error) {
+	ret := _m.Called(id, value)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdatePersonalDeduction")
+	}
+
+	var r0 *models.DeductionConfig
+	var r1 error
+	if rf, ok := ret.Get(0).(func(uint, float64) (*models.DeductionConfig, error)); ok {
+		return rf(id, value)
+	}
+	if rf, ok := ret.Get(0).(func(uint, float64) *models.DeductionConfig); ok {
+		r0 = rf(id, value)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.DeductionConfig)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(uint, float64) error); ok {
+		r1 = rf(id, value)
 	} else {
 		r1 = ret.Error(1)
 	}

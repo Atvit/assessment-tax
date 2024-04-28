@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-func TestUpdatePersonalDeduction(t *testing.T) {
+func TestHandler_UpdatePersonalDeduction(t *testing.T) {
 	type testcase struct {
 		requestBody    []byte
 		expectedStatus int
@@ -45,11 +45,11 @@ func TestUpdatePersonalDeduction(t *testing.T) {
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 
-		repo.On("Update", mock.AnythingOfType("uint"), mock.AnythingOfType("*models.DeductionConfigEntity")).Return(&models.DeductionConfig{ID: 1, Personal: 70000, KReceipt: 50000}, nil).Once()
+		repo.On("UpdatePersonalDeduction", mock.AnythingOfType("uint"), mock.AnythingOfType("float64")).Return(&models.DeductionConfig{ID: 1, Personal: 70000, KReceipt: 50000}, nil).Once()
 
 		if assert.NoError(t, h.UpdatePersonalDeduction(c)) {
 			assert.Equal(t, tc.expectedStatus, rec.Code)
-			assert.Contains(t, rec.Body.String(), tc.expectedBody)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
 		}
 	})
 
@@ -67,7 +67,7 @@ func TestUpdatePersonalDeduction(t *testing.T) {
 
 		if assert.NoError(t, h.UpdatePersonalDeduction(c)) {
 			assert.Equal(t, tc.expectedStatus, rec.Code)
-			assert.Contains(t, rec.Body.String(), tc.expectedBody)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
 		}
 	})
 
@@ -85,7 +85,7 @@ func TestUpdatePersonalDeduction(t *testing.T) {
 
 		if assert.NoError(t, h.UpdatePersonalDeduction(c)) {
 			assert.Equal(t, tc.expectedStatus, rec.Code)
-			assert.Contains(t, rec.Body.String(), tc.expectedBody)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
 		}
 	})
 
@@ -103,7 +103,7 @@ func TestUpdatePersonalDeduction(t *testing.T) {
 
 		if assert.NoError(t, h.UpdatePersonalDeduction(c)) {
 			assert.Equal(t, tc.expectedStatus, rec.Code)
-			assert.Contains(t, rec.Body.String(), tc.expectedBody)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
 		}
 	})
 
@@ -119,11 +119,11 @@ func TestUpdatePersonalDeduction(t *testing.T) {
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 
-		repo.On("Update", mock.AnythingOfType("uint"), mock.AnythingOfType("*models.DeductionConfigEntity")).Return(&models.DeductionConfig{ID: 1, Personal: 10000, KReceipt: 50000}, nil).Once()
+		repo.On("UpdatePersonalDeduction", mock.AnythingOfType("uint"), mock.AnythingOfType("float64")).Return(&models.DeductionConfig{ID: 1, Personal: 10000, KReceipt: 50000}, nil).Once()
 
 		if assert.NoError(t, h.UpdatePersonalDeduction(c)) {
 			assert.Equal(t, tc.expectedStatus, rec.Code)
-			assert.Contains(t, rec.Body.String(), tc.expectedBody)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
 		}
 	})
 
@@ -139,11 +139,11 @@ func TestUpdatePersonalDeduction(t *testing.T) {
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 
-		repo.On("Update", mock.AnythingOfType("uint"), mock.AnythingOfType("*models.DeductionConfigEntity")).Return(&models.DeductionConfig{ID: 1, Personal: 100000, KReceipt: 50000}, nil).Once()
+		repo.On("UpdatePersonalDeduction", mock.AnythingOfType("uint"), mock.AnythingOfType("float64")).Return(&models.DeductionConfig{ID: 1, Personal: 100000, KReceipt: 50000}, nil).Once()
 
 		if assert.NoError(t, h.UpdatePersonalDeduction(c)) {
 			assert.Equal(t, tc.expectedStatus, rec.Code)
-			assert.Contains(t, rec.Body.String(), tc.expectedBody)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
 		}
 	})
 
@@ -160,11 +160,143 @@ func TestUpdatePersonalDeduction(t *testing.T) {
 		c := e.NewContext(req, rec)
 
 		errNoRows := sql.ErrNoRows
-		repo.On("Update", mock.AnythingOfType("uint"), mock.AnythingOfType("*models.DeductionConfigEntity")).Return(nil, errNoRows).Once()
+		repo.On("UpdatePersonalDeduction", mock.AnythingOfType("uint"), mock.AnythingOfType("float64")).Return(nil, errNoRows).Once()
 
 		if assert.NoError(t, h.UpdatePersonalDeduction(c)) {
 			assert.Equal(t, tc.expectedStatus, rec.Code)
-			assert.Contains(t, rec.Body.String(), tc.expectedBody)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
+		}
+	})
+}
+
+func TestHandler_UpdateKReceiptDeduction(t *testing.T) {
+	type testcase struct {
+		requestBody    []byte
+		expectedStatus int
+		expectedBody   string
+	}
+
+	e := echo.New()
+	logger := zap.NewNop()
+	validate := validator.New()
+	repo := new(mockSetting.Repository)
+
+	h := &handler{
+		logger:     logger,
+		validate:   validate,
+		repository: repo,
+	}
+
+	t.Run("valid request", func(t *testing.T) {
+		tc := testcase{
+			requestBody:    []byte(`{"amount": 70000.0}`),
+			expectedStatus: 200,
+			expectedBody:   `{"kReceipt":70000}`,
+		}
+
+		req := httptest.NewRequest(http.MethodPost, "/admin/deductions/k-receipt", bytes.NewReader(tc.requestBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		repo.On("UpdateKReceiptDeduction", mock.AnythingOfType("uint"), mock.AnythingOfType("float64")).Return(&models.DeductionConfig{ID: 1, Personal: 70000, KReceipt: 70000}, nil).Once()
+
+		if assert.NoError(t, h.UpdateKReceiptDeduction(c)) {
+			assert.Equal(t, tc.expectedStatus, rec.Code)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
+		}
+	})
+
+	t.Run("invalid request", func(t *testing.T) {
+		tc := testcase{
+			requestBody:    []byte(`[]`),
+			expectedStatus: 400,
+			expectedBody:   `{"error":"code=400, message=Unmarshal type error: expected=setting.KReceiptDeductionRequest, got=array, field=, offset=1, internal=json: cannot unmarshal array into Go value of type setting.KReceiptDeductionRequest"}`,
+		}
+
+		req := httptest.NewRequest(http.MethodPost, "/admin/deductions/k-receipt", bytes.NewReader(tc.requestBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		if assert.NoError(t, h.UpdateKReceiptDeduction(c)) {
+			assert.Equal(t, tc.expectedStatus, rec.Code)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
+		}
+	})
+
+	t.Run("amount greter than 100000", func(t *testing.T) {
+		tc := testcase{
+			requestBody:    []byte(`{"amount": 1000000.0}`),
+			expectedStatus: 400,
+			expectedBody:   `{"error":[{"field":"Amount","message":"the value of Amount must be less than or equal 100000"}]}`,
+		}
+
+		req := httptest.NewRequest(http.MethodPost, "/admin/deductions/k-receipt", bytes.NewReader(tc.requestBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		if assert.NoError(t, h.UpdateKReceiptDeduction(c)) {
+			assert.Equal(t, tc.expectedStatus, rec.Code)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
+		}
+	})
+
+	t.Run("amount less than 0", func(t *testing.T) {
+		tc := testcase{
+			requestBody:    []byte(`{"amount": -100.0}`),
+			expectedStatus: 400,
+			expectedBody:   `{"error":[{"field":"Amount","message":"the value of Amount must be greater than 0"}]}`,
+		}
+
+		req := httptest.NewRequest(http.MethodPost, "/admin/deductions/k-receipt", bytes.NewReader(tc.requestBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		if assert.NoError(t, h.UpdateKReceiptDeduction(c)) {
+			assert.Equal(t, tc.expectedStatus, rec.Code)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
+		}
+	})
+
+	t.Run("amount equal 0", func(t *testing.T) {
+		tc := testcase{
+			requestBody:    []byte(`{"amount": 0}`),
+			expectedStatus: 400,
+			expectedBody:   `{"error":[{"field":"Amount","message":"field Amount is required"}]}`,
+		}
+
+		req := httptest.NewRequest(http.MethodPost, "/admin/deductions/k-receipt", bytes.NewReader(tc.requestBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		if assert.NoError(t, h.UpdateKReceiptDeduction(c)) {
+			assert.Equal(t, tc.expectedStatus, rec.Code)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
+		}
+	})
+
+	t.Run("update db error", func(t *testing.T) {
+		tc := testcase{
+			requestBody:    []byte(`{"amount": 100000.0}`),
+			expectedStatus: 500,
+			expectedBody:   `{"error":"sql: no rows in result set"}`,
+		}
+
+		req := httptest.NewRequest(http.MethodPost, "/admin/deductions/k-receipt", bytes.NewReader(tc.requestBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		errNoRows := sql.ErrNoRows
+		repo.On("UpdateKReceiptDeduction", mock.AnythingOfType("uint"), mock.AnythingOfType("float64")).Return(nil, errNoRows).Once()
+
+		if assert.NoError(t, h.UpdateKReceiptDeduction(c)) {
+			assert.Equal(t, tc.expectedStatus, rec.Code)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
 		}
 	})
 }

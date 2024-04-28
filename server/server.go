@@ -59,6 +59,7 @@ func (s server) registerRoutes() {
 		return mw.Authenticate(username, password, s.cfg)
 	}))
 	admin.POST("/deductions/personal", s.settingHandler.UpdatePersonalDeduction)
+	admin.POST("/deductions/k-receipt", s.settingHandler.UpdateKReceiptDeduction)
 
 	tax := e.Group("/tax/calculations")
 	tax.POST("", s.taxHandler.CalculateTax)
