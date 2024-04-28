@@ -54,7 +54,7 @@ var Calculate = func(t *Tax) (float64, float64, []TaxLevel, error) {
 	}
 
 	addPersonalAllowance(t)
-	deductAmount := getDeductAmount(t.Allowances)
+	deductAmount := getDeductAmount(t.Allowances, t.AllowanceSetting)
 	taxableIncome := t.Income - deductAmount
 
 	taxAmount, refundAmount, taxLevels := calculateTax(taxableIncome, t.Wht)
@@ -162,13 +162,19 @@ func validate(t *Tax) error {
 	return nil
 }
 
-func getDeductAmount(allowances []Allowance) float64 {
+func getDeductAmount(allowances []Allowance, setting AllowanceSetting) float64 {
 	amount := 0.00
 
 	for _, allowance := range allowances {
 		if allowance.AllowanceType == donation {
 			if allowance.Amount > 100000 {
 				allowance.Amount = 100000
+			}
+		}
+
+		if allowance.AllowanceType == kReceipt {
+			if allowance.Amount > setting.KReceipt {
+				allowance.Amount = setting.KReceipt
 			}
 		}
 
