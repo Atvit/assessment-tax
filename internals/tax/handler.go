@@ -122,7 +122,7 @@ func (h handler) CalculateTax(c echo.Context) error {
 }
 
 func (h handler) UploadCSV(c echo.Context) error {
-	file, err := c.FormFile("file")
+	file, err := c.FormFile("taxFile")
 	if err != nil {
 		h.logger.Error("upload file failed", zap.Error(err))
 		return c.JSON(http.StatusBadRequest, utils.ErrResponse{
