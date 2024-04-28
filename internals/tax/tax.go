@@ -99,34 +99,31 @@ func calculateProgressiveTax(taxableIncome float64) (float64, []TaxLevel) {
 	taxLevelsMap := initializeTaxLevelsMap()
 	taxLevels := getTaxLevels(taxLevelsMap)
 
-	if taxableIncome <= 150000 {
-		return 0, taxLevels
+	taxBrackets := []struct {
+		lowerBound   float64
+		upperBound   float64
+		rate         float64
+		level        string
+		noUpperLimit bool
+	}{
+		{150000, 500000, 0.10, level2, false},
+		{500000, 1000000, 0.15, level3, false},
+		{1000000, 2000000, 0.20, level4, false},
+		{2000000, 0, 0.35, level5, true},
 	}
 
-	if taxableIncome > 150000 {
-		tax := calculateTaxBracket(taxableIncome, 150000, 500000, 0.10)
+	for _, bracket := range taxBrackets {
+		if taxableIncome > bracket.lowerBound {
+			tax := 0.0
+			if bracket.noUpperLimit {
+				tax = (taxableIncome - bracket.lowerBound) * bracket.rate
+			} else {
+				tax = calculateTaxBracket(taxableIncome, bracket.lowerBound, bracket.upperBound, bracket.rate)
+			}
 
-		taxAmount += tax
-		updateTaxLevel(taxLevelsMap, level2, utils.Round(tax, precision))
-	}
-
-	if taxableIncome > 500000 {
-		tax := calculateTaxBracket(taxableIncome, 500000, 1000000, 0.15)
-
-		taxAmount += tax
-		updateTaxLevel(taxLevelsMap, level3, utils.Round(tax, precision))
-	}
-	if taxableIncome > 1000000 {
-		tax := calculateTaxBracket(taxableIncome, 1000000, 2000000, 0.20)
-
-		taxAmount += tax
-		updateTaxLevel(taxLevelsMap, level4, utils.Round(tax, precision))
-	}
-	if taxableIncome > 2000000 {
-		tax := (taxableIncome - 2000000) * 0.35
-
-		taxAmount += tax
-		updateTaxLevel(taxLevelsMap, level5, utils.Round(tax, precision))
+			taxAmount += tax
+			updateTaxLevel(taxLevelsMap, bracket.level, utils.Round(tax, precision))
+		}
 	}
 
 	return utils.Round(taxAmount, precision), taxLevels
