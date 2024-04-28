@@ -60,8 +60,9 @@ func (s server) registerRoutes() {
 	}))
 	admin.POST("/deductions/personal", s.settingHandler.UpdatePersonalDeduction)
 
-	tax := e.Group("/tax")
-	tax.POST("/calculations", s.taxHandler.CalculateTax)
+	tax := e.Group("/tax/calculations")
+	tax.POST("", s.taxHandler.CalculateTax)
+	tax.POST("/upload-csv", s.taxHandler.UploadCSV)
 }
 
 func (s server) Start() {
