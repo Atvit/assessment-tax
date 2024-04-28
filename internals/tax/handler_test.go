@@ -277,7 +277,6 @@ func TestHandler_CalculateTax(t *testing.T) {
 func TestHandler_UploadCSV(t *testing.T) {
 	type testcase struct {
 		fileContent     string
-		mockFileError   error
 		mockReadError   error
 		expectedStatus  int
 		expectedBody    string
@@ -291,7 +290,6 @@ func TestHandler_UploadCSV(t *testing.T) {
 	t.Run("valid CSV file", func(t *testing.T) {
 		tc := testcase{
 			fileContent:    "totalIncome,wht,donation\n500000,0,0\n600000,40000,20000\n750000,50000,15000",
-			mockFileError:  nil,
 			mockReadError:  nil,
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{"taxes":[{"totalIncome":500000,"tax":29000},{"totalIncome":600000,"tax":0,"taxRefund":2000},{"totalIncome":750000,"tax":11250}]}`,
@@ -299,7 +297,7 @@ func TestHandler_UploadCSV(t *testing.T) {
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
-		part, _ := writer.CreateFormFile("file", "taxes.csv")
+		part, _ := writer.CreateFormFile("taxFile", "taxes.csv")
 		part.Write([]byte(tc.fileContent))
 		writer.Close()
 
@@ -328,14 +326,13 @@ func TestHandler_UploadCSV(t *testing.T) {
 	t.Run("empty CSV file", func(t *testing.T) {
 		tc := testcase{
 			fileContent:    "",
-			mockFileError:  nil,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"empty csv file given"}`,
 		}
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
-		part, _ := writer.CreateFormFile("file", "taxes.csv")
+		part, _ := writer.CreateFormFile("taxFile", "taxes.csv")
 		part.Write([]byte(tc.fileContent))
 		writer.Close()
 
@@ -359,7 +356,6 @@ func TestHandler_UploadCSV(t *testing.T) {
 	t.Run("CSV file with no records", func(t *testing.T) {
 		tc := testcase{
 			fileContent:    "totalIncome,wht,donation\n",
-			mockFileError:  nil,
 			mockReadError:  nil,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"empty csv file given"}`,
@@ -367,7 +363,7 @@ func TestHandler_UploadCSV(t *testing.T) {
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
-		part, _ := writer.CreateFormFile("file", "taxes.csv")
+		part, _ := writer.CreateFormFile("taxFile", "taxes.csv")
 		part.Write([]byte(tc.fileContent))
 		writer.Close()
 
@@ -391,7 +387,6 @@ func TestHandler_UploadCSV(t *testing.T) {
 	t.Run("upload file error", func(t *testing.T) {
 		tc := testcase{
 			fileContent:    "",
-			mockFileError:  errors.New("multipart: NextPart: EOF"),
 			mockReadError:  nil,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"multipart: NextPart: EOF"}`,
@@ -399,7 +394,7 @@ func TestHandler_UploadCSV(t *testing.T) {
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
-		part, _ := writer.CreateFormFile("file", "taxes.csv")
+		part, _ := writer.CreateFormFile("taxFile", "taxes.csv")
 		part.Write([]byte(tc.fileContent))
 		writer.Close()
 
@@ -425,14 +420,13 @@ func TestHandler_UploadCSV(t *testing.T) {
 	t.Run("get tax setting failed", func(t *testing.T) {
 		tc := testcase{
 			fileContent:    "totalIncome,wht,donation\n500000,0,0\n600000,40000,20000\n750000,50000,15000",
-			mockFileError:  nil,
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"error":"sql: no rows in result set"}`,
 		}
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
-		part, _ := writer.CreateFormFile("file", "taxes.csv")
+		part, _ := writer.CreateFormFile("taxFile", "taxes.csv")
 		part.Write([]byte(tc.fileContent))
 		writer.Close()
 
@@ -462,14 +456,13 @@ func TestHandler_UploadCSV(t *testing.T) {
 	t.Run("negative donation", func(t *testing.T) {
 		tc := testcase{
 			fileContent:    "totalIncome,wht,donation\n500000,0,0\n600000,40000,-20000\n750000,50000,15000",
-			mockFileError:  nil,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":[{"field":"Donation","message":"the value of Donation must be greater than or equal 0"}]}`,
 		}
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
-		part, _ := writer.CreateFormFile("file", "taxes.csv")
+		part, _ := writer.CreateFormFile("taxFile", "taxes.csv")
 		part.Write([]byte(tc.fileContent))
 		writer.Close()
 
@@ -499,14 +492,13 @@ func TestHandler_UploadCSV(t *testing.T) {
 	t.Run("negative income", func(t *testing.T) {
 		tc := testcase{
 			fileContent:    "totalIncome,wht,donation\n-500000,0,0\n600000,40000,20000\n750000,50000,15000",
-			mockFileError:  nil,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":[{"field":"TotalIncome", "message":"the value of TotalIncome must be greater than or equal 0"}]}`,
 		}
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
-		part, _ := writer.CreateFormFile("file", "taxes.csv")
+		part, _ := writer.CreateFormFile("taxFile", "taxes.csv")
 		part.Write([]byte(tc.fileContent))
 		writer.Close()
 
@@ -536,14 +528,13 @@ func TestHandler_UploadCSV(t *testing.T) {
 	t.Run("wht higher than income", func(t *testing.T) {
 		tc := testcase{
 			fileContent:    "totalIncome,wht,donation\n500000,0,0\n600000,40000,20000\n750000,950000,15000",
-			mockFileError:  nil,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":[{"field":"Wht", "message":"the value of Wht value must be lower than or equal value of field TotalIncome"}]}`,
 		}
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
-		part, _ := writer.CreateFormFile("file", "taxes.csv")
+		part, _ := writer.CreateFormFile("taxFile", "taxes.csv")
 		part.Write([]byte(tc.fileContent))
 		writer.Close()
 
@@ -573,7 +564,6 @@ func TestHandler_UploadCSV(t *testing.T) {
 	t.Run("calculation error", func(t *testing.T) {
 		tc := testcase{
 			fileContent:     "totalIncome,wht,donation\n500000,0,0\n600000,40000,-20000\n750000,50000,15000",
-			mockFileError:   nil,
 			expectedStatus:  http.StatusBadRequest,
 			mockCalculateFn: func(t *Tax) (float64, float64, []TaxLevel, error) { return 0, 0, nil, errors.New("calculation error") },
 			expectedBody:    `{"error":"calculation error"}`,
@@ -581,7 +571,7 @@ func TestHandler_UploadCSV(t *testing.T) {
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
-		part, _ := writer.CreateFormFile("file", "taxes.csv")
+		part, _ := writer.CreateFormFile("taxFile", "taxes.csv")
 		part.Write([]byte(tc.fileContent))
 		writer.Close()
 
@@ -611,4 +601,36 @@ func TestHandler_UploadCSV(t *testing.T) {
 		assert.Equal(t, tc.expectedStatus, rec.Code)
 		assert.JSONEq(t, tc.expectedBody, rec.Body.String())
 	})
+
+	t.Run("incorrect filename", func(t *testing.T) {
+		tc := testcase{
+			fileContent:    "",
+			mockReadError:  nil,
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"error":"http: no such file"}`,
+		}
+
+		body := new(bytes.Buffer)
+		writer := multipart.NewWriter(body)
+		part, _ := writer.CreateFormFile("file", "taxes.csv")
+		part.Write([]byte(tc.fileContent))
+		writer.Close()
+
+		req := httptest.NewRequest(http.MethodPost, "/tax/calculations/upload-csv", body)
+		req.Header.Set(echo.HeaderContentType, writer.FormDataContentType())
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		h := &handler{
+			logger:   logger,
+			validate: validate,
+		}
+
+		if err := h.UploadCSV(c); err != nil {
+			assert.Error(t, err)
+		}
+		assert.Equal(t, tc.expectedStatus, rec.Code)
+		assert.JSONEq(t, tc.expectedBody, rec.Body.String())
+	})
+
 }
