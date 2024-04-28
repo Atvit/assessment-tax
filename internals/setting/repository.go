@@ -8,7 +8,8 @@ import (
 
 type Repository interface {
 	Get() (*models.DeductionConfig, error)
-	Update(id uint, entity *models.DeductionConfigEntity) (*models.DeductionConfig, error)
+	UpdatePersonalDeduction(id uint, value float64) (*models.DeductionConfig, error)
+	UpdateKReceiptDeduction(id uint, value float64) (*models.DeductionConfig, error)
 }
 
 type repository struct {
@@ -39,9 +40,22 @@ func (r repository) Get() (*models.DeductionConfig, error) {
 	return &config, nil
 }
 
-func (r repository) Update(id uint, entity *models.DeductionConfigEntity) (*models.DeductionConfig, error) {
-	query := `UPDATE tax_deduction_configs SET personal = $1, kreceipt = $2, updated_at = $3 WHERE id = $4 RETURNING *`
-	row := r.db.QueryRow(query, entity.Personal, entity.KReceipt, time.Now(), id)
+func (r repository) UpdatePersonalDeduction(id uint, value float64) (*models.DeductionConfig, error) {
+	query := `UPDATE tax_deduction_configs SET personal = $1, updated_at = $2 WHERE id = $3 RETURNING *`
+	row := r.db.QueryRow(query, value, time.Now(), id)
+
+	var result models.DeductionConfig
+	err := row.Scan(&result.ID, &result.Personal, &result.KReceipt, &result.CreatedAt, &result.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (r repository) UpdateKReceiptDeduction(id uint, value float64) (*models.DeductionConfig, error) {
+	query := `UPDATE tax_deduction_configs SET kreceipt = $1, updated_at = $2 WHERE id = $3 RETURNING *`
+	row := r.db.QueryRow(query, value, time.Now(), id)
 
 	var result models.DeductionConfig
 	err := row.Scan(&result.ID, &result.Personal, &result.KReceipt, &result.CreatedAt, &result.UpdatedAt)
