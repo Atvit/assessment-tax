@@ -226,6 +226,15 @@ func TestCalculateTax(t *testing.T) {
 			expectedRefund: 0,
 			expectedLevels: getMockTaxLevels(TaxLevel{level2, utils.ToPointer(14000.0)}),
 		},
+		{
+			name:           "default k-receipt allowance",
+			income:         500000,
+			wht:            0,
+			allowances:     []Allowance{{kReceipt, 200000}, {donation, 100000}},
+			expectedTax:    14000,
+			expectedRefund: 0,
+			expectedLevels: getMockTaxLevels(TaxLevel{level2, utils.ToPointer(14000.0)}),
+		},
 	}
 
 	for _, tt := range tests {
