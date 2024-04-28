@@ -25,7 +25,8 @@ const (
 
 const (
 	defaultPersonalAllowance = 60000.00
-	defaultKReceiptAllowance = 50000.0
+	defaultKReceiptAllowance = 50000.00
+	maxDonationAllowance     = 100000.00
 )
 
 type TaxLevelMap map[string]TaxLevel
@@ -168,8 +169,8 @@ func getDeductAmount(allowances []Allowance, setting AllowanceSetting) float64 {
 
 	for _, allowance := range allowances {
 		if allowance.AllowanceType == donation {
-			if allowance.Amount > 100000 {
-				allowance.Amount = 100000
+			if allowance.Amount > maxDonationAllowance {
+				allowance.Amount = maxDonationAllowance
 			}
 		}
 
