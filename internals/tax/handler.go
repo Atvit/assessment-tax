@@ -9,15 +9,15 @@ import (
 	"net/http"
 )
 
-type Allowance struct {
+type AllowanceRequest struct {
 	AllowanceType string  `json:"allowanceType" validate:"omitempty,oneof=donation k-receipt"`
 	Amount        float64 `json:"amount" validate:"omitempty,gte=0"`
 }
 
 type Request struct {
-	TotalIncome float64     `json:"totalIncome" validate:"required,gte=0"`
-	Wht         float64     `json:"wht" validate:"omitempty,gte=0,ltefield=TotalIncome"`
-	Allowances  []Allowance `json:"allowances" validate:"dive"`
+	TotalIncome float64            `json:"totalIncome" validate:"required,gte=0"`
+	Wht         float64            `json:"wht" validate:"omitempty,gte=0,ltefield=TotalIncome"`
+	Allowances  []AllowanceRequest `json:"allowances" validate:"dive"`
 }
 
 type Response struct {
@@ -73,9 +73,9 @@ func (h handler) CalculateTax(c echo.Context) error {
 		})
 	}
 
-	var taxAllowances []TaxAllowance
+	var taxAllowances []Allowance
 	for _, allowances := range req.Allowances {
-		taxAllowances = append(taxAllowances, TaxAllowance{
+		taxAllowances = append(taxAllowances, Allowance{
 			AllowanceType: allowances.AllowanceType,
 			Amount:        allowances.Amount,
 		})
@@ -84,7 +84,7 @@ func (h handler) CalculateTax(c echo.Context) error {
 		Income:     req.TotalIncome,
 		Wht:        req.Wht,
 		Allowances: taxAllowances,
-		AllowanceSetting: TaxAllowanceSetting{
+		AllowanceSetting: AllowanceSetting{
 			Personal: allowanceSetting.Personal,
 			KReceipt: allowanceSetting.KReceipt,
 		},
