@@ -201,7 +201,7 @@ func initializeTaxLevelsMap() TaxLevelMap {
 }
 
 func updateTaxLevel(taxLevels TaxLevelMap, level string, amount float64) {
-	if taxLevel, exists := taxLevels[level]; exists {
+	if taxLevel, ok := taxLevels[level]; ok {
 		*taxLevel.Tax += amount
 	}
 }
