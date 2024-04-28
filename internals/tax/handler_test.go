@@ -86,6 +86,40 @@ func TestHandler_CalculateTax(t *testing.T) {
 		}
 	})
 
+	t.Run("k-receipt allowance", func(t *testing.T) {
+		tc := testcase{
+			requestBody: []byte(`{"totalIncome": 500000.0,"wht": 0.0,"allowances": [{"allowanceType": "k-receipt","amount": 200000.0},{"allowanceType": "donation","amount": 100000.0}]}`),
+			mockCalculateFn: func(t *Tax) (float64, float64, []TaxLevel, error) {
+				return 14000, 0, getMockTaxLevels(TaxLevel{level2, utils.ToPointer(14000.0)}), nil
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody:   `{"tax":14000,"taxLevel":[{"level":"0-150,000","tax":0},{"level":"150,001-500,000","tax":14000},{"level":"500,001-1,000,000","tax":0},{"level":"1,000,001-2,000,000","tax":0},{"level":"2,000,001 ขึ้นไป","tax":0}]}`,
+		}
+
+		req := httptest.NewRequest(http.MethodPost, "/tax/calculations", bytes.NewReader(tc.requestBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		settingRepo := new(mockSetting.Repository)
+
+		h := &handler{
+			logger:      logger,
+			validate:    validate,
+			settingRepo: settingRepo,
+		}
+
+		originalCalculate := Calculate
+		Calculate = tc.mockCalculateFn
+		defer func() { Calculate = originalCalculate }()
+
+		settingRepo.On("Get").Return(&models.DeductionConfig{ID: 1, Personal: 60000, KReceipt: 50000}, nil).Once()
+
+		if assert.NoError(t, h.CalculateTax(c)) {
+			assert.Equal(t, tc.expectedStatus, rec.Code)
+			assert.JSONEq(t, rec.Body.String(), tc.expectedBody)
+		}
+	})
+
 	t.Run("invalid totalIncome", func(t *testing.T) {
 		tc := testcase{
 			requestBody:     []byte(`{"totalIncome": -100, "wht": 0}`),
