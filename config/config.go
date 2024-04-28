@@ -8,8 +8,8 @@ import (
 type Configuration struct {
 	Port          int    `env:"PORT" envDefault:"8080"`
 	DatabaseURL   string `env:"DATABASE_URL" envDefault:"host=localhost port=5432 user=postgres password=postgres dbname=ktaxes sslmode=disable"`
-	AdminUsername string `env:"ADMIN_USERNAME" envDefault:"adminTax"`
-	AdminPassword string `env:"ADMIN_PASSWORD" envDefault:"admin!"`
+	AdminUsername string `env:"ADMIN_USERNAME" envDefault:"default"`
+	AdminPassword string `env:"ADMIN_PASSWORD" envDefault:"default"`
 }
 
 func New(logger *zap.Logger) *Configuration {
