@@ -8,11 +8,11 @@ start:
 
 .PHONY: test
 test:
-	go test -v ./... -cover
+	go test -v $$(go list ./... | grep -v /mocks/) -cover
 
 .PHONY: coverage
 coverage:
-	go test -v ./... -coverprofile=coverage.out
+	go test -v $$(go list ./... | grep -v /mocks/) -coverprofile=coverage.out
 	go tool cover -html=coverage.out
 
 .PHONY: vet
