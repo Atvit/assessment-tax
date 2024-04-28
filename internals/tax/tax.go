@@ -23,6 +23,11 @@ const (
 	level5 = "level5"
 )
 
+const (
+	defaultPersonalAllowance = 60000.00
+	defaultKReceiptAllowance = 50000.0
+)
+
 type TaxLevelMap map[string]TaxLevel
 
 type TaxLevel struct {
@@ -63,7 +68,6 @@ var Calculate = func(t *Tax) (float64, float64, []TaxLevel, error) {
 }
 
 func addPersonalAllowance(t *Tax) {
-	defaultPersonalAllowance := 60000.00
 	personalAllowance := t.AllowanceSetting.Personal
 	if decimal.NewFromFloat(personalAllowance).IsZero() {
 		personalAllowance = defaultPersonalAllowance
@@ -173,6 +177,10 @@ func getDeductAmount(allowances []Allowance, setting AllowanceSetting) float64 {
 		}
 
 		if allowance.AllowanceType == kReceipt {
+			if decimal.NewFromFloat(setting.KReceipt).IsZero() {
+				setting.KReceipt = defaultKReceiptAllowance
+			}
+
 			if allowance.Amount > setting.KReceipt {
 				allowance.Amount = setting.KReceipt
 			}
