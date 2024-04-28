@@ -12,6 +12,24 @@ type Handler struct {
 	mock.Mock
 }
 
+// UpdateKReceiptDeduction provides a mock function with given fields: c
+func (_m *Handler) UpdateKReceiptDeduction(c echo.Context) error {
+	ret := _m.Called(c)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateKReceiptDeduction")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(echo.Context) error); ok {
+		r0 = rf(c)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdatePersonalDeduction provides a mock function with given fields: c
 func (_m *Handler) UpdatePersonalDeduction(c echo.Context) error {
 	ret := _m.Called(c)
