@@ -77,6 +77,7 @@ func TestGetErrMsg(t *testing.T) {
 		{"gt", "Age", "18", "the value of Age must be greater than 18"},
 		{"gte", "Members", "1", "the value of Members must be greater than or equal 1"},
 		{"ltefield", "StartYear", "EndYear", "the value of StartYear value must be lower than or equal value of field EndYear"},
+		{"lte", "Age", "18", "the value of Age must be less than or equal 18"},
 		{"unknown", "Field", "Param", UnknownErrMsg},
 	}
 
