@@ -131,7 +131,7 @@ func (h handler) UploadCSV(c echo.Context) error {
 	}
 
 	var data []CSVData
-	csvData, err := ReadCSV(file, data)
+	csvData, err := utils.ReadCSV(file, data)
 	if err != nil {
 		h.logger.Error("read csv failed", zap.Error(err))
 		return c.JSON(http.StatusBadRequest, utils.ErrResponse{
