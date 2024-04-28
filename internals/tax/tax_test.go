@@ -9,14 +9,15 @@ import (
 
 func TestCalculateTax(t *testing.T) {
 	tests := []struct {
-		name           string
-		income         float64
-		wht            float64
-		expectedTax    float64
-		expectedRefund float64
-		expectedErr    error
-		expectedLevels []TaxLevel
-		allowances     []Allowance
+		name             string
+		income           float64
+		wht              float64
+		expectedTax      float64
+		expectedRefund   float64
+		expectedErr      error
+		expectedLevels   []TaxLevel
+		allowances       []Allowance
+		allowanceSetting AllowanceSetting
 	}{
 		{
 			name:           "negative income",
@@ -207,19 +208,33 @@ func TestCalculateTax(t *testing.T) {
 			name:           "get a refund if withholding tax is greater than tax to pay",
 			income:         500000,
 			wht:            30000,
-			allowances:     []Allowance{{AllowanceType: donation, Amount: 200000}},
+			allowances:     []Allowance{{donation, 200000}},
 			expectedTax:    0,
 			expectedRefund: 11000,
 			expectedLevels: getMockTaxLevels(TaxLevel{level2, utils.ToPointer(19000.0)}),
+		},
+		{
+			name:       "k-receipt allowance",
+			income:     500000,
+			wht:        0,
+			allowances: []Allowance{{kReceipt, 200000}, {donation, 100000}},
+			allowanceSetting: AllowanceSetting{
+				Personal: 60000.0,
+				KReceipt: 50000.0,
+			},
+			expectedTax:    14000,
+			expectedRefund: 0,
+			expectedLevels: getMockTaxLevels(TaxLevel{level2, utils.ToPointer(14000.0)}),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			taxAmount, refundAmount, taxLevels, err := Calculate(&Tax{
-				Income:     tt.income,
-				Wht:        tt.wht,
-				Allowances: tt.allowances,
+				Income:           tt.income,
+				Wht:              tt.wht,
+				Allowances:       tt.allowances,
+				AllowanceSetting: tt.allowanceSetting,
 			})
 
 			assert.Equal(t, tt.expectedErr, err)
