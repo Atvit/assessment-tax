@@ -25,12 +25,17 @@ const (
 
 type TaxLevelMap map[string]TaxLevel
 
-type TaxAllowanceSetting struct {
+type TaxLevel struct {
+	Level string   `json:"level"`
+	Tax   *float64 `json:"tax"`
+}
+
+type AllowanceSetting struct {
 	Personal float64
 	KReceipt float64
 }
 
-type TaxAllowance struct {
+type Allowance struct {
 	AllowanceType string
 	Amount        float64
 }
@@ -38,13 +43,8 @@ type TaxAllowance struct {
 type Tax struct {
 	Income           float64
 	Wht              float64
-	Allowances       []TaxAllowance
-	AllowanceSetting TaxAllowanceSetting
-}
-
-type TaxLevel struct {
-	Level string   `json:"level"`
-	Tax   *float64 `json:"tax"`
+	Allowances       []Allowance
+	AllowanceSetting AllowanceSetting
 }
 
 var Calculate = func(t *Tax) (float64, float64, []TaxLevel, error) {
@@ -69,7 +69,7 @@ func addPersonalAllowance(t *Tax) {
 		personalAllowance = defaultPersonalAllowance
 	}
 
-	t.Allowances = append(t.Allowances, TaxAllowance{
+	t.Allowances = append(t.Allowances, Allowance{
 		AllowanceType: "personal",
 		Amount:        personalAllowance,
 	})
@@ -162,7 +162,7 @@ func validate(t *Tax) error {
 	return nil
 }
 
-func getDeductAmount(allowances []TaxAllowance) float64 {
+func getDeductAmount(allowances []Allowance) float64 {
 	amount := 0.00
 
 	for _, allowance := range allowances {

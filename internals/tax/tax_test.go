@@ -16,7 +16,7 @@ func TestCalculateTax(t *testing.T) {
 		expectedRefund float64
 		expectedErr    error
 		expectedLevels []TaxLevel
-		allowances     []TaxAllowance
+		allowances     []Allowance
 	}{
 		{
 			name:           "negative income",
@@ -163,14 +163,14 @@ func TestCalculateTax(t *testing.T) {
 			wht:            0,
 			expectedTax:    0,
 			expectedRefund: 0,
-			allowances:     []TaxAllowance{{personal, 40000}, {"invalid", 50000}},
+			allowances:     []Allowance{{personal, 40000}, {"invalid", 50000}},
 			expectedErr:    errs.ErrIncorrectAllowanceType,
 		},
 		{
 			name:           "allowance amount less than zero",
 			income:         500000,
 			wht:            0,
-			allowances:     []TaxAllowance{{personal, -1000}},
+			allowances:     []Allowance{{personal, -1000}},
 			expectedTax:    0,
 			expectedRefund: 0,
 			expectedErr:    errs.ErrValueMustBePositive,
@@ -179,7 +179,7 @@ func TestCalculateTax(t *testing.T) {
 			name:           "empty allowance slice",
 			income:         500000,
 			wht:            0,
-			allowances:     []TaxAllowance{},
+			allowances:     []Allowance{},
 			expectedTax:    29000,
 			expectedRefund: 0,
 			expectedErr:    nil,
@@ -189,7 +189,7 @@ func TestCalculateTax(t *testing.T) {
 			name:           "donation allowance",
 			income:         500000,
 			wht:            0,
-			allowances:     []TaxAllowance{{donation, 200000}},
+			allowances:     []Allowance{{donation, 200000}},
 			expectedTax:    19000,
 			expectedRefund: 0,
 			expectedErr:    nil,
@@ -207,7 +207,7 @@ func TestCalculateTax(t *testing.T) {
 			name:           "get a refund if withholding tax is greater than tax to pay",
 			income:         500000,
 			wht:            30000,
-			allowances:     []TaxAllowance{{AllowanceType: donation, Amount: 200000}},
+			allowances:     []Allowance{{AllowanceType: donation, Amount: 200000}},
 			expectedTax:    0,
 			expectedRefund: 11000,
 			expectedLevels: getMockTaxLevels(TaxLevel{level2, utils.ToPointer(19000.0)}),
